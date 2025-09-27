@@ -14,9 +14,13 @@ node_modules/
 jspm_packages/
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+build/
 
 # dotenv environment variable files
 .env
 .env.*
 !.env.example
+
+#NextJS
+.next
+next-env.d.ts
