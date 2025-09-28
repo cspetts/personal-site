@@ -1,3 +1,6 @@
+# Build dir
+app/
+
 # Logs
 logs
 *.log

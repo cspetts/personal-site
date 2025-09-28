@@ -1,0 +1,58 @@
+name: Build and Push Docker Images
+
+env:
+  REPOSITORY_NAME: spettigue.io
+  IMAGE_NAME: website
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write
+
+jobs:
+  build-and-push-images:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./site
+
+    strategy:
+      matrix:
+        node-version: [22.19.0]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ./site/package-lock.json
+    - run: npm ci
+
+    - name: Build Docker image
+      run: |
+        docker build -t site_image .
+
+    # Push the image to ECR
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4 
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActions_ImagePush
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR Private
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+        
+    - name: Tag & push docker image to ECR
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker tag site_image $REGISTRY/$REPOSITORY_NAME/$IMAGE_NAME
+        docker push $REGISTRY/$REPOSITORY_NAME/$IMAGE_NAME
